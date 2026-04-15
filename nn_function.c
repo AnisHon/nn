@@ -7,15 +7,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-static inline int8_t relu(int8_t num, int8_t zero) {
-    int signed_num = nn_to_int(num, zero);
-    int8_t res;
-    if (signed_num < 0) {
-        res = zero;
-    } else {
-        res = num;
-    }
-    return res;
+static inline int8_t relu_q8(int8_t num, int32_t zp) {
+    return nn_q8_asym_to_int(num, zp) < 0 ? nn_int_to_q8_asym(0, zp) : num;
 }
 
 void nn_relu_image(nn_image *image, nn_image *out) {
@@ -27,7 +20,7 @@ void nn_relu_image(nn_image *image, nn_image *out) {
 void nn_relu_matrix(nn_matrix *vector, nn_matrix *out) {
     for (size_t i = 0; i < vector->h; i++) {
         for (size_t j = 0; j < vector->w; j++) {
-            int8_t res = relu(*nn_mtx_get(vector, i, j), vector->zp);
+            int8_t res = relu_q8(*nn_mtx_get(vector, i, j), vector->zp);
             nn_mtx_set(out, i, j, res);
         }
     }
@@ -69,10 +62,10 @@ void nn_avg_pool(nn_image *image, nn_image *out) {
         nn_matrix *in = nn_image_get(image, c);
         for (size_t i = 0; i < image->h; i++) {
             for (size_t j = 0; j < image->w; j++) {
-                sum += nn_to_int(*nn_mtx_get(in, i, j), image->zp);
+                sum += nn_q8_asym_to_int(*nn_mtx_get(in, i, j), image->zp);
             }
         }
         const int32_t mean = sum / area;
-        nn_mtx_set(nn_image_get(out, c), 0, 0, nn_to_u8(mean, out->zp));
+        nn_mtx_set(nn_image_get(out, c), 0, 0, nn_int_to_q8_asym(mean, out->zp));
     }
 }

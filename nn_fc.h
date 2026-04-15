@@ -11,15 +11,15 @@
 typedef struct {
     size_t d_in, d_out;
     nn_matrix *weight;
-    nn_matrix *bias;
+    const int32_t *bias;
     int32_t weight_zp;
     int32_t out_zp;
 } nn_fc;
 
-void nn_fc_init(nn_fc *fc, int8_t *weight, int8_t *bias, size_t d_in,
-                size_t d_out, nn_matrix *weight_mtx, nn_matrix *bias_mtx,
-                int32_t weight_zp, int32_t out_zp);
+void nn_fc_init(nn_fc *fc, int8_t *weight, const int32_t *bias, size_t d_in,
+                size_t d_out, nn_matrix *weight_mtx, int32_t weight_zp,
+                int32_t out_zp);
 
 void nn_fc_forward(const nn_fc *fc, const nn_matrix *in, nn_matrix *out);
 
-#endif //! NN_FC_H
+#endif

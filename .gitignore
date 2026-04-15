@@ -1,1 +1,5 @@
 build/
+tiny-imagenet-200.zip
+tiny-imagenet-200/
+RESNET18_ANALYSIS_SUMMARY.md
+RESNET18_MODIFICATIONS.md

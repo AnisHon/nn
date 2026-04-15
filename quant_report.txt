@@ -1,0 +1,29 @@
+量化报告 (PyTorch qnnpack PTQ)
+============================================================
+FP32  Top-1: 63.52%
+INT8  Top-1: 61.86%
+精度损失   : 1.66%
+
+Layer                                    Type       w_scale[0]    out_scale   out_zp
+----------------------------------------------------------------------------------
+conv1                                    conv         0.037479     0.025440        0
+layer1.0.conv1                           conv         0.009551     0.030989        0
+layer1.0.conv2                           conv         0.012186     0.091684      157
+layer1.1.conv1                           conv         0.004564     0.017408        0
+layer1.1.conv2                           conv         0.015169     0.083024      167
+layer2.0.conv1                           conv         0.001998     0.025067        0
+layer2.0.conv2                           conv         0.005617     0.070420      139
+layer2.0.downsample.0                    conv         0.003187     0.017507      146
+layer2.1.conv1                           conv         0.003152     0.021187        0
+layer2.1.conv2                           conv         0.005414     0.061251      151
+layer3.0.conv1                           conv         0.002614     0.025773        0
+layer3.0.conv2                           conv         0.002888     0.071879      118
+layer3.0.downsample.0                    conv         0.005080     0.018311      180
+layer3.1.conv1                           conv         0.002911     0.022495        0
+layer3.1.conv2                           conv         0.003450     0.065245      138
+layer4.0.conv1                           conv         0.000724     0.019454        0
+layer4.0.conv2                           conv         0.002413     0.056956      135
+layer4.0.downsample.0                    conv         0.002172     0.015274      157
+layer4.1.conv1                           conv         0.003643     0.019256        0
+layer4.1.conv2                           conv         0.006549     0.176500      137
+fc                                       linear       0.009747     0.051473       48

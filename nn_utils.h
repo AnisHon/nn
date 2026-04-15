@@ -8,6 +8,10 @@ int8_t nn_to_u8(int num, int32_t zp);
 int8_t nn_to_i8(int num, int32_t zp);
 int8_t nn_clamp_i8(int32_t v);
 
+int32_t nn_q8_asym_to_int(int8_t raw, int32_t zp);
+int32_t nn_q8_sym_to_int(int8_t raw, int32_t zp);
+int8_t nn_int_to_q8_asym(int32_t value, int32_t zp);
+
 // 将量化值从 (x_scale, x_zp) 对齐到 (y_scale, y_zp)
 int8_t nn_qalign_i8(int8_t x_q, float x_scale, int32_t x_zp, float y_scale,
                     int32_t y_zp);
