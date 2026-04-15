@@ -7,6 +7,7 @@
 #include <string.h>
 #include <jpeglib.h>
 #include <setjmp.h>
+#include <time.h>
 
 #define INPUT_H 64
 #define INPUT_W 64
@@ -22,6 +23,12 @@ struct error_mgr {
 
 static char wnids[OUTPUT_CLASSES][32];
 static int wnid_count = 0;
+
+typedef struct {
+    char file_name[256];
+    char wnid[32];
+} tiny_sample;
+
 static int8_t image_buf[INPUT_C * INPUT_H * INPUT_W];
 static nn_matrix input_mats[INPUT_C];
 static nn_image input_img;
@@ -145,10 +152,53 @@ static int infer_one(const char *jpeg_path) {
                                                    : -1;
 }
 
+static size_t load_samples(const char *annotations_path, tiny_sample *samples,
+                           size_t max_samples) {
+    FILE *fp = fopen(annotations_path, "r");
+    if (!fp) {
+        return 0;
+    }
+
+    char line[1024];
+    size_t count = 0;
+    while (count < max_samples && fgets(line, sizeof(line), fp)) {
+        char file_name[256], wnid[32];
+        int x0, y0, x1, y1;
+        if (sscanf(line, "%255s\t%31s\t%d\t%d\t%d\t%d", file_name, wnid, &x0,
+                   &y0, &x1, &y1) < 2) {
+            continue;
+        }
+        if (snprintf(samples[count].file_name, sizeof(samples[count].file_name),
+                     "%s", file_name) >= (int)sizeof(samples[count].file_name)) {
+            continue;
+        }
+        if (snprintf(samples[count].wnid, sizeof(samples[count].wnid), "%s", wnid) >=
+            (int)sizeof(samples[count].wnid)) {
+            continue;
+        }
+        count++;
+    }
+    fclose(fp);
+    return count;
+}
+
+static void shuffle_samples(tiny_sample *samples, size_t count) {
+    if (count <= 1) {
+        return;
+    }
+    srand((unsigned)time(NULL));
+    for (size_t i = count - 1; i > 0; --i) {
+        size_t j = (size_t)(rand() % (int)(i + 1));
+        tiny_sample tmp = samples[i];
+        samples[i] = samples[j];
+        samples[j] = tmp;
+    }
+}
+
 int main(int argc, char **argv) {
-    if (argc != 4) {
+    if (argc != 4 && argc != 5) {
         fprintf(stderr,
-                "Usage: %s <val_annotations.txt> <val_images_dir> <wnids.txt>\n",
+                "Usage: %s <val_annotations.txt> <val_images_dir> <wnids.txt> [limit]\n",
                 argv[0]);
         return 1;
     }
@@ -158,60 +208,76 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    FILE *fp = fopen(argv[1], "r");
-    if (!fp) {
-        perror("fopen");
+    size_t limit = 0;
+    if (argc == 5 && argv[4][0] != '\0') {
+        char *end = NULL;
+        unsigned long parsed = strtoul(argv[4], &end, 10);
+        if (end == argv[4] || *end != '\0' || parsed == 0) {
+            fprintf(stderr, "invalid limit: %s\n", argv[4]);
+            return 1;
+        }
+        limit = (size_t)parsed;
+    }
+
+    enum { MAX_VAL_SAMPLES = 10000 };
+    static tiny_sample samples[MAX_VAL_SAMPLES];
+    const size_t sample_count = load_samples(argv[1], samples, MAX_VAL_SAMPLES);
+    if (sample_count == 0) {
+        fprintf(stderr, "failed to load samples from: %s\n", argv[1]);
         return 1;
     }
 
-    printf("starting Tiny-ImageNet val...\n");
+    if (limit == 0 || limit > sample_count) {
+        limit = sample_count;
+    }
+    shuffle_samples(samples, sample_count);
+
+    printf("starting Tiny-ImageNet val (random %zu / %zu)...\n", limit,
+           sample_count);
     fflush(stdout);
 
-    char line[1024];
     size_t total = 0, correct = 0, failed = 0;
-    while (fgets(line, sizeof(line), fp)) {
-        char file_name[256], wnid[32];
-        int x0, y0, x1, y1;
-        const size_t seen = total + failed + 1;
-        printf("\rprocessing sample %zu...", seen);
+    for (size_t idx = 0; idx < limit; ++idx) {
+        const tiny_sample *sample = &samples[idx];
+        const size_t seen = idx + 1;
+        printf("\rprocessing sample %zu/%zu...", seen, limit);
         fflush(stdout);
-        if (sscanf(line, "%255s\t%31s\t%d\t%d\t%d\t%d", file_name, wnid, &x0,
-                   &y0, &x1, &y1) < 2) {
-            continue;
-        }
-        int label = wnid_to_label(wnid);
+
+        int label = wnid_to_label(sample->wnid);
         if (label < 0) {
             failed++;
             continue;
         }
+
         char image_path[1024];
-        if (snprintf(image_path, sizeof(image_path), "%s/%s", argv[2], file_name) >=
-            (int)sizeof(image_path)) {
+        if (snprintf(image_path, sizeof(image_path), "%s/%s", argv[2],
+                     sample->file_name) >= (int)sizeof(image_path)) {
             failed++;
             continue;
         }
+
         int pred = infer_one(image_path);
         if (pred < 0) {
             failed++;
-            printf("\rprocessed=%zu failed=%zu", total, failed);
+            printf("\rprocessed=%zu/%zu failed=%zu", total, limit, failed);
             fflush(stdout);
             continue;
         }
+
         total++;
         if (pred == label) correct++;
-        printf("\rprocessed=%zu acc=%.2f%% failed=%zu", total,
+        printf("\rprocessed=%zu/%zu acc=%.2f%% failed=%zu", total, limit,
                100.0 * (double)correct / (double)total, failed);
         fflush(stdout);
     }
-    fclose(fp);
 
     if (!total) {
-        fprintf(stderr, "no samples processed\n");
+        fprintf(stderr, "\nno samples processed\n");
         return 1;
     }
 
-    printf("\nTiny-ImageNet val accuracy: %zu / %zu = %.2f%%\n", correct, total,
-           100.0 * (double)correct / (double)total);
+    printf("\nTiny-ImageNet sampled accuracy: %zu / %zu = %.2f%%\n", correct,
+           total, 100.0 * (double)correct / (double)total);
     fflush(stdout);
     if (failed) printf("failed samples: %zu\n", failed);
     return 0;

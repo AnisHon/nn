@@ -33,6 +33,7 @@ TINY_IMAGENET_ROOT ?= ../tiny-imagenet-200
 TINY_VAL_ANNOTATIONS ?= $(TINY_IMAGENET_ROOT)/val/val_annotations.txt
 TINY_VAL_IMAGES ?= $(TINY_IMAGENET_ROOT)/val/images
 TINY_WNIDS ?= $(TINY_IMAGENET_ROOT)/wnids.txt
+LIMIT ?=
 
 .DEFAULT_GOAL := all
 
@@ -67,7 +68,7 @@ test: $(TARGET) $(TEST1)
 tiny: $(TEST2)
 
 tiny-val: $(TEST2)
-	./$(TEST2) "$(TINY_VAL_ANNOTATIONS)" "$(TINY_VAL_IMAGES)" "$(TINY_WNIDS)"
+	./$(TEST2) "$(TINY_VAL_ANNOTATIONS)" "$(TINY_VAL_IMAGES)" "$(TINY_WNIDS)" "$(LIMIT)"
 
 clean:
 	$(RM) $(BUILD_DIR)/*.o $(TARGET) $(TEST1) $(TEST2)
