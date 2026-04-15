@@ -9,7 +9,7 @@ void nn_forward(const nn_layer *layer, const nn_stensor *ti, nn_stensor *to) {
     case NN_LAYER_CONV:
         assert(ti->tensor_type == NN_STENSOR_IMG &&
                to->tensor_type == NN_STENSOR_IMG);
-        nn_conv2d_forward(layer->layer.conv2d, ti->tensor.img, ti->tensor.img);
+        nn_conv2d_forward(layer->layer.conv2d, ti->tensor.img, to->tensor.img);
         break;
     case NN_LAYER_FC:
         assert(ti->tensor_type == NN_STENSOR_MTX &&
@@ -20,8 +20,8 @@ void nn_forward(const nn_layer *layer, const nn_stensor *ti, nn_stensor *to) {
         nn_relu(ti, to);
         break;
     case NN_LAYER_AVG_POOL:
-        assert(ti->tensor_type == NN_STENSOR_MTX &&
-               to->tensor_type == NN_STENSOR_MTX);
+        assert(ti->tensor_type == NN_STENSOR_IMG &&
+               to->tensor_type == NN_STENSOR_IMG);
         nn_avg_pool(ti->tensor.img, to->tensor.img);
         break;
     case NN_LAYER_FLATTEN:

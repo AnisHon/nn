@@ -3,7 +3,10 @@
 
 #include "nn_conv2d.h"
 #include "nn_fc.h"
+#include "nn_layer.h"
 #include "nn_matrix.h"
+#include "nn_stensor.h"
+#include <stdbool.h>
 //
 // #define DEFINE_RES_BLOCK(name, conv_num, chan) \
 //     struct { \
@@ -31,6 +34,11 @@ extern struct conv1 {
     int8_t *weights;
     int8_t *bias;
 } conv1;
+extern struct res1 l1;
+extern struct res2 l2;
+extern struct res3 l3;
+extern struct res4 l4;
+extern struct fc fc1;
 
 struct res1 {
     struct {
@@ -119,6 +127,11 @@ struct fc {
     int8_t *bias;
 };
 
-void init_res_net();
+extern nn_layer g_resnet18_layers[22];
+extern nn_stensor g_resnet18_io[2];
+
+void init_res_net(void);
+void build_resnet18_graph(void);
+bool resnet18_infer(nn_image *input, nn_matrix *output);
 
 #endif //! RESNET18_H
